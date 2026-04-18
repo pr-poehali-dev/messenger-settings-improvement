@@ -4,56 +4,38 @@
 
 @layer base {
   :root {
-    --background: 220 16% 8%;
-    --foreground: 220 10% 92%;
-
-    --card: 220 14% 11%;
-    --card-foreground: 220 10% 92%;
-
-    --popover: 220 14% 11%;
-    --popover-foreground: 220 10% 92%;
-
-    --primary: 217 91% 60%;
+    --background: 0 0% 5%;
+    --foreground: 0 10% 92%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 10% 92%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 10% 92%;
+    --primary: 0 78% 55%;
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 220 12% 16%;
-    --secondary-foreground: 220 10% 80%;
-
-    --muted: 220 12% 14%;
-    --muted-foreground: 220 8% 52%;
-
-    --accent: 217 80% 55%;
+    --secondary: 0 8% 12%;
+    --secondary-foreground: 0 8% 75%;
+    --muted: 0 8% 10%;
+    --muted-foreground: 0 6% 45%;
+    --accent: 0 78% 55%;
     --accent-foreground: 0 0% 100%;
-
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-
-    --border: 220 12% 18%;
-    --input: 220 12% 16%;
-    --ring: 217 91% 60%;
-
+    --border: 0 12% 16%;
+    --input: 0 8% 12%;
+    --ring: 0 78% 55%;
     --radius: 0.75rem;
 
-    --sidebar-background: 220 16% 6%;
-    --sidebar-foreground: 220 8% 70%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 12% 14%;
-    --sidebar-accent-foreground: 220 10% 88%;
-    --sidebar-border: 220 12% 14%;
-    --sidebar-ring: 217 91% 60%;
-
-    /* Kiscord custom vars */
-    --k-bg-deep: #080c14;
-    --k-bg-base: #0d1117;
-    --k-bg-surface: #131920;
-    --k-bg-elevated: #1a2332;
-    --k-border: #1e2d3d;
-    --k-accent: #3b82f6;
-    --k-accent-dim: rgba(59, 130, 246, 0.15);
-    --k-text-primary: #e8edf5;
-    --k-text-secondary: #7d8fa3;
-    --k-text-muted: #4a5568;
+    /* Kiscord custom vars — dark by default */
+    --k-bg-deep: #0d0505;
+    --k-bg-base: #120808;
+    --k-bg-surface: #1a0a0a;
+    --k-bg-elevated: #220d0d;
+    --k-border: #3d1515;
+    --k-accent: #e53e3e;
+    --k-accent-dim: rgba(229, 62, 62, 0.12);
+    --k-text-primary: #f5e8e8;
+    --k-text-secondary: #c4908a;
+    --k-text-muted: #7a4040;
     --k-online: #22c55e;
     --k-danger: #ef4444;
   }
@@ -64,15 +46,27 @@
     @apply border-border;
   }
 
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
   body {
-    @apply bg-background text-foreground;
     font-family: "Golos Text", sans-serif;
     background-color: var(--k-bg-deep);
     color: var(--k-text-primary);
   }
 
+  ::placeholder {
+    color: var(--k-text-muted);
+    opacity: 1;
+  }
+
   ::-webkit-scrollbar {
     width: 4px;
+    height: 4px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
@@ -84,17 +78,22 @@
   ::-webkit-scrollbar-thumb:hover {
     background: var(--k-text-muted);
   }
+
+  select option {
+    background: var(--k-bg-elevated);
+    color: var(--k-text-primary);
+  }
 }
 
 @layer utilities {
   .animate-fade-in {
-    animation: fadeIn 0.25s ease forwards;
+    animation: fadeIn 0.2s ease forwards;
   }
   .animate-slide-up {
-    animation: slideUp 0.3s ease forwards;
+    animation: slideUp 0.25s ease forwards;
   }
   .animate-message-in {
-    animation: messageIn 0.2s ease forwards;
+    animation: messageIn 0.18s ease forwards;
   }
 }
 
@@ -110,7 +109,7 @@
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -121,7 +120,7 @@
 @keyframes messageIn {
   from {
     opacity: 0;
-    transform: translateY(6px) scale(0.98);
+    transform: translateY(5px) scale(0.98);
   }
   to {
     opacity: 1;
