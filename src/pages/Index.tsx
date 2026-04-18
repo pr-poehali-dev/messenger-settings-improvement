@@ -380,36 +380,65 @@ function CreateChatModal({ type, onClose, onCreate }: {
   );
 }
 
-// ─── LOGIN SCREEN ─────────────────────────────────────────────────────────────
+// ─── AUTH SCREEN ──────────────────────────────────────────────────────────────
 
-function LoginScreen({ onAuth }: { onAuth: () => void }) {
-  const [step, setStep] = useState<"login" | "twofa">("login");
+function LoginScreen({ onAuth }: { onAuth: (name: string) => void }) {
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [step, setStep] = useState<"form" | "twofa">("form");
+
+  // login fields
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [code, setCode] = useState(["", "", "", "", "", ""]);
+
+  // register fields
+  const [regName, setRegName] = useState("");
+  const [regUsername, setRegUsername] = useState("");
+  const [regPhone, setRegPhone] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPass, setRegPass] = useState("");
+  const [regPassConf, setRegPassConf] = useState("");
+  const [agreed, setAgreed] = useState(false);
+
+  const [showPass, setShowPass] = useState(false);
+  const [showRegPass, setShowRegPass] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPass, setShowPass] = useState(false);
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
+  const [pendingName, setPendingName] = useState("");
   const codeRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const switchMode = (m: "login" | "register") => {
+    setMode(m); setError(""); setStep("form");
+    setPhone(""); setPassword("");
+    setRegName(""); setRegUsername(""); setRegPhone(""); setRegEmail(""); setRegPass(""); setRegPassConf(""); setAgreed(false);
+    setCode(["","","","","",""]);
+  };
 
   const handleLogin = () => {
     if (!phone.trim() || !password.trim()) { setError("Заполните все поля"); return; }
-    setError("");
-    setLoading(true);
-    setTimeout(() => { setLoading(false); setStep("twofa"); }, 1200);
+    setError(""); setLoading(true);
+    setTimeout(() => { setLoading(false); setPendingName("Пользователь"); setStep("twofa"); }, 1100);
+  };
+
+  const handleRegister = () => {
+    if (!regName.trim()) { setError("Введите имя"); return; }
+    if (!regUsername.trim()) { setError("Введите username"); return; }
+    if (!regPhone.trim()) { setError("Введите номер телефона"); return; }
+    if (!regEmail.trim() || !regEmail.includes("@")) { setError("Введите корректный email"); return; }
+    if (regPass.length < 6) { setError("Пароль минимум 6 символов"); return; }
+    if (regPass !== regPassConf) { setError("Пароли не совпадают"); return; }
+    if (!agreed) { setError("Примите условия использования"); return; }
+    setError(""); setLoading(true);
+    setTimeout(() => { setLoading(false); setPendingName(regName.trim()); setStep("twofa"); }, 1200);
   };
 
   const handleCodeInput = (i: number, val: string) => {
     if (!/^\d?$/.test(val)) return;
-    const next = [...code];
-    next[i] = val;
-    setCode(next);
+    const next = [...code]; next[i] = val; setCode(next);
     if (val && i < 5) codeRefs.current[i + 1]?.focus();
     if (next.every(c => c !== "")) {
-      setTimeout(() => {
-        setLoading(true);
-        setTimeout(() => { setLoading(false); onAuth(); }, 1000);
-      }, 200);
+      setLoading(true);
+      setTimeout(() => { setLoading(false); onAuth(pendingName); }, 900);
     }
   };
 
@@ -417,23 +446,39 @@ function LoginScreen({ onAuth }: { onAuth: () => void }) {
     if (e.key === "Backspace" && !code[i] && i > 0) codeRefs.current[i - 1]?.focus();
   };
 
+  const inputStyle = { background: "var(--k-bg-elevated)", border: "1px solid var(--k-border)", color: "var(--k-text-primary)" };
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "var(--k-bg-deep)" }}>
-      <div className="w-full max-w-sm animate-slide-up">
+    <div className="min-h-screen flex items-center justify-center p-4 overflow-auto" style={{ background: "var(--k-bg-deep)" }}>
+      <div className="w-full max-w-sm animate-slide-up py-6">
         {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3"
-            style={{ background: "var(--k-accent)" }}>
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: "var(--k-accent)" }}>
             <span className="text-white font-bold text-2xl">K</span>
           </div>
           <h1 className="text-2xl font-bold" style={{ color: "var(--k-text-primary)" }}>Kiscord</h1>
-          <p className="text-sm mt-1" style={{ color: "var(--k-text-muted)" }}>Защищённый мессенджер</p>
+          <p className="text-xs mt-1" style={{ color: "var(--k-text-muted)" }}>Защищённый мессенджер</p>
         </div>
 
-        <div className="rounded-2xl p-6" style={{ background: "var(--k-bg-surface)", border: "1px solid var(--k-border)" }}>
-          {step === "login" ? (
+        {/* Tab switcher */}
+        {step === "form" && (
+          <div className="flex rounded-xl p-1 mb-4" style={{ background: "var(--k-bg-surface)", border: "1px solid var(--k-border)" }}>
+            {(["login", "register"] as const).map(m => (
+              <button key={m} onClick={() => switchMode(m)}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
+                style={{ background: mode === m ? "var(--k-accent)" : "transparent", color: mode === m ? "#fff" : "var(--k-text-muted)" }}>
+                {m === "login" ? "Вход" : "Регистрация"}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="rounded-2xl p-5" style={{ background: "var(--k-bg-surface)", border: "1px solid var(--k-border)" }}>
+
+          {/* ── LOGIN FORM ── */}
+          {step === "form" && mode === "login" && (
             <>
-              <h2 className="font-bold text-base mb-4 text-center" style={{ color: "var(--k-text-primary)" }}>Вход в аккаунт</h2>
+              <h2 className="font-bold text-base mb-4" style={{ color: "var(--k-text-primary)" }}>Вход в аккаунт</h2>
               <div className="space-y-3">
                 <div>
                   <label className="text-xs mb-1 block" style={{ color: "var(--k-text-muted)" }}>Телефон или email</label>
@@ -441,7 +486,7 @@ function LoginScreen({ onAuth }: { onAuth: () => void }) {
                     placeholder="+7 999 123-45-67"
                     onKeyDown={e => e.key === "Enter" && handleLogin()}
                     className="w-full px-3 py-3 rounded-xl text-sm outline-none"
-                    style={{ background: "var(--k-bg-elevated)", border: "1px solid var(--k-border)", color: "var(--k-text-primary)" }} />
+                    style={inputStyle} />
                 </div>
                 <div>
                   <label className="text-xs mb-1 block" style={{ color: "var(--k-text-muted)" }}>Пароль</label>
@@ -451,30 +496,132 @@ function LoginScreen({ onAuth }: { onAuth: () => void }) {
                       placeholder="Введите пароль"
                       onKeyDown={e => e.key === "Enter" && handleLogin()}
                       className="w-full px-3 py-3 pr-10 rounded-xl text-sm outline-none"
-                      style={{ background: "var(--k-bg-elevated)", border: "1px solid var(--k-border)", color: "var(--k-text-primary)" }} />
-                    <button onClick={() => setShowPass(!showPass)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "var(--k-text-muted)" }}>
+                      style={inputStyle} />
+                    <button onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "var(--k-text-muted)" }}>
                       <Icon name={showPass ? "EyeOff" : "Eye"} size={16} />
                     </button>
                   </div>
                 </div>
-                {error && <div className="text-xs px-3 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.15)", color: "#ef4444" }}>{error}</div>}
+                {error && <div className="text-xs px-3 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>{error}</div>}
                 <button onClick={handleLogin} disabled={loading}
-                  className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-opacity"
+                  className="w-full py-3 rounded-xl font-semibold text-sm text-white"
                   style={{ background: "var(--k-accent)", opacity: loading ? 0.7 : 1 }}>
-                  {loading ? "Проверяем..." : "Войти"}
+                  {loading ? "Проверяем..." : "Войти →"}
                 </button>
               </div>
-              <div className="text-center mt-4 text-xs" style={{ color: "var(--k-text-muted)" }}>
-                Нет аккаунта? <span className="cursor-pointer" style={{ color: "var(--k-accent)" }}>Зарегистрироваться</span>
+              <div className="text-center mt-3 text-xs" style={{ color: "var(--k-text-muted)" }}>
+                Забыли пароль? <span className="cursor-pointer" style={{ color: "var(--k-accent)" }}>Восстановить</span>
               </div>
             </>
-          ) : (
+          )}
+
+          {/* ── REGISTER FORM ── */}
+          {step === "form" && mode === "register" && (
             <>
-              <h2 className="font-bold text-base mb-2 text-center" style={{ color: "var(--k-text-primary)" }}>Двухфакторная аутентификация</h2>
-              <p className="text-xs text-center mb-5" style={{ color: "var(--k-text-muted)" }}>
-                Введите 6-значный код из приложения-аутентификатора
-              </p>
+              <h2 className="font-bold text-base mb-4" style={{ color: "var(--k-text-primary)" }}>Создать аккаунт</h2>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: "var(--k-text-muted)" }}>Имя *</label>
+                    <input value={regName} onChange={e => setRegName(e.target.value)}
+                      placeholder="Иван Иванов"
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                      style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: "var(--k-text-muted)" }}>Username *</label>
+                    <input value={regUsername} onChange={e => setRegUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ""))}
+                      placeholder="ivan_ivanov"
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                      style={inputStyle} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: "var(--k-text-muted)" }}>Номер телефона *</label>
+                  <input value={regPhone} onChange={e => setRegPhone(e.target.value)}
+                    placeholder="+7 999 123-45-67"
+                    type="tel"
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                    style={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: "var(--k-text-muted)" }}>Email *</label>
+                  <input value={regEmail} onChange={e => setRegEmail(e.target.value)}
+                    placeholder="ivan@mail.ru"
+                    type="email"
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                    style={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: "var(--k-text-muted)" }}>Пароль * (мин. 6 символов)</label>
+                  <div className="relative">
+                    <input value={regPass} onChange={e => setRegPass(e.target.value)}
+                      type={showRegPass ? "text" : "password"}
+                      placeholder="Придумайте пароль"
+                      className="w-full px-3 py-2.5 pr-10 rounded-xl text-sm outline-none"
+                      style={inputStyle} />
+                    <button onClick={() => setShowRegPass(!showRegPass)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "var(--k-text-muted)" }}>
+                      <Icon name={showRegPass ? "EyeOff" : "Eye"} size={15} />
+                    </button>
+                  </div>
+                  {regPass.length > 0 && (
+                    <div className="mt-1 flex gap-1">
+                      {[1,2,3,4].map(n => (
+                        <div key={n} className="flex-1 h-1 rounded-full transition-all"
+                          style={{ background: regPass.length >= n * 2 ? (regPass.length >= 8 ? "#22c55e" : "var(--k-accent)") : "var(--k-bg-elevated)" }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: "var(--k-text-muted)" }}>Подтвердите пароль *</label>
+                  <div className="relative">
+                    <input value={regPassConf} onChange={e => setRegPassConf(e.target.value)}
+                      type="password"
+                      placeholder="Повторите пароль"
+                      className="w-full px-3 py-2.5 pr-8 rounded-xl text-sm outline-none"
+                      style={{ ...inputStyle, borderColor: regPassConf && regPass !== regPassConf ? "#ef4444" : "var(--k-border)" }} />
+                    {regPassConf && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Icon name={regPass === regPassConf ? "Check" : "X"} size={14}
+                          style={{ color: regPass === regPassConf ? "#22c55e" : "#ef4444" }} />
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <div onClick={() => setAgreed(!agreed)}
+                    className="w-4 h-4 rounded flex items-center justify-center mt-0.5 flex-shrink-0 transition-all"
+                    style={{ background: agreed ? "var(--k-accent)" : "var(--k-bg-elevated)", border: `1.5px solid ${agreed ? "var(--k-accent)" : "var(--k-border)"}` }}>
+                    {agreed && <Icon name="Check" size={10} style={{ color: "#fff" }} />}
+                  </div>
+                  <span className="text-xs leading-relaxed" style={{ color: "var(--k-text-muted)" }}>
+                    Я согласен с <span style={{ color: "var(--k-accent)" }}>Условиями использования</span> и <span style={{ color: "var(--k-accent)" }}>Политикой конфиденциальности</span>
+                  </span>
+                </label>
+                {error && <div className="text-xs px-3 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>{error}</div>}
+                <button onClick={handleRegister} disabled={loading}
+                  className="w-full py-3 rounded-xl font-semibold text-sm text-white"
+                  style={{ background: "var(--k-accent)", opacity: loading ? 0.7 : 1 }}>
+                  {loading ? "Создаём аккаунт..." : "Зарегистрироваться →"}
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── 2FA STEP ── */}
+          {step === "twofa" && (
+            <>
+              <div className="flex flex-col items-center mb-4">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
+                  style={{ background: "var(--k-accent-dim)", border: "1px solid rgba(229,62,62,0.4)" }}>
+                  <Icon name="ShieldCheck" size={22} style={{ color: "var(--k-accent)" }} />
+                </div>
+                <h2 className="font-bold text-base" style={{ color: "var(--k-text-primary)" }}>Двухфакторная аутентификация</h2>
+                <p className="text-xs text-center mt-1" style={{ color: "var(--k-text-muted)" }}>
+                  Введите 6-значный код из SMS или приложения
+                </p>
+              </div>
               <div className="flex gap-2 justify-center mb-4">
                 {code.map((c, i) => (
                   <input key={i}
@@ -484,28 +631,19 @@ function LoginScreen({ onAuth }: { onAuth: () => void }) {
                     onKeyDown={e => handleKeyDown(i, e)}
                     maxLength={1}
                     className="w-11 h-12 text-center font-bold text-lg rounded-xl outline-none transition-all"
-                    style={{
-                      background: "var(--k-bg-elevated)",
-                      border: `2px solid ${c ? "var(--k-accent)" : "var(--k-border)"}`,
-                      color: "var(--k-text-primary)",
-                    }} />
+                    style={{ background: "var(--k-bg-elevated)", border: `2px solid ${c ? "var(--k-accent)" : "var(--k-border)"}`, color: "var(--k-text-primary)" }} />
                 ))}
               </div>
-              {loading && (
-                <div className="text-center text-sm mb-3" style={{ color: "var(--k-text-muted)" }}>Проверяем код...</div>
-              )}
+              {loading && <div className="text-center text-sm mb-3" style={{ color: "var(--k-text-muted)" }}>Проверяем код...</div>}
               <div className="flex items-center gap-2 p-3 rounded-xl mb-3"
                 style={{ background: "var(--k-accent-dim)", border: "1px solid rgba(229,62,62,0.3)" }}>
-                <Icon name="ShieldCheck" size={14} style={{ color: "var(--k-accent)", flexShrink: 0 }} />
-                <span className="text-xs" style={{ color: "var(--k-text-secondary)" }}>Код действителен 30 секунд</span>
+                <Icon name="Lock" size={13} style={{ color: "var(--k-accent)", flexShrink: 0 }} />
+                <span className="text-xs" style={{ color: "var(--k-text-secondary)" }}>Для демо введи код <b style={{ color: "var(--k-accent)" }}>123456</b></span>
               </div>
-              <button onClick={() => { setStep("login"); setCode(["","","","","",""]); }}
+              <button onClick={() => { setStep("form"); setCode(["","","","","",""]); }}
                 className="w-full text-sm py-2 rounded-xl" style={{ color: "var(--k-text-muted)" }}>
                 ← Назад
               </button>
-              <div className="text-center mt-3 text-xs" style={{ color: "var(--k-text-muted)" }}>
-                Используй код <span className="font-bold" style={{ color: "var(--k-accent)" }}>123456</span> для демо
-              </div>
             </>
           )}
         </div>
@@ -810,10 +948,11 @@ function SearchPage({ contacts, onSelectChat }: { contacts: Contact[]; onSelectC
 
 // ─── HOME PAGE ────────────────────────────────────────────────────────────────
 
-function HomePage({ contacts, onNavigate, onSelectChat }: {
+function HomePage({ contacts, onNavigate, onSelectChat, userName }: {
   contacts: Contact[];
   onNavigate: (p: Page) => void;
   onSelectChat: (c: Contact) => void;
+  userName: string;
 }) {
   const totalUnread = contacts.reduce((s, c) => s + c.unread, 0);
   const recentContacts = [...contacts].sort((a, b) => b.unread - a.unread).slice(0, 4);
@@ -825,7 +964,7 @@ function HomePage({ contacts, onNavigate, onSelectChat }: {
           <span className="text-white font-bold text-lg">K</span>
         </div>
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--k-text-primary)" }}>Добрый день, Дмитрий</h1>
+          <h1 className="text-xl font-bold" style={{ color: "var(--k-text-primary)" }}>Добрый день, {userName}!</h1>
           <p className="text-xs" style={{ color: "var(--k-text-muted)" }}>Сб, 18 апреля 2026</p>
         </div>
       </div>
@@ -1192,6 +1331,7 @@ function SettingsPage({ settings, onUpdate, devices, onDeleteDevice }: {
 
 export default function Index() {
   const [authStep, setAuthStep] = useState<AuthStep>("login");
+  const [userName, setUserName] = useState("Дмитрий");
   const [activePage, setActivePage] = useState<Page>("home");
   const [contacts, setContacts] = useState<Contact[]>(INITIAL_CONTACTS);
   const [selectedChat, setSelectedChat] = useState<Contact | null>(null);
@@ -1240,7 +1380,7 @@ export default function Index() {
     setActivePage("chats");
   }, []);
 
-  if (authStep === "login") return <LoginScreen onAuth={() => setAuthStep("app")} />;
+  if (authStep === "login") return <LoginScreen onAuth={(name) => { setUserName(name); setAuthStep("app"); }} />;
 
   const navItems = [
     { id: "home" as Page, icon: "Home", label: "Главная" },
@@ -1332,7 +1472,7 @@ export default function Index() {
       {/* Main area */}
       <div className="flex-1 min-w-0 flex flex-col">
         {activePage === "home" && (
-          <HomePage contacts={contacts} onNavigate={handleNavigate} onSelectChat={handleSelectChat} />
+          <HomePage contacts={contacts} onNavigate={handleNavigate} onSelectChat={handleSelectChat} userName={userName} />
         )}
         {(activePage === "chats" || activePage === "dm") && (
           selectedChat
